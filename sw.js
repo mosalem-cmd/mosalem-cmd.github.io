@@ -6,7 +6,7 @@
 // كي لا يظل المستخدم عالقاً على نسخة قديمة من التطبيق بعد أي تحديث.
 // ============================================================
 
-const CACHE_NAME = 'taysir-shell-v2';
+const CACHE_NAME = 'taysir-shell-v3';
 // مكتبات خارجية ثابتة الإصدار (مولّد رموز QR، قارئ QR، Supabase): تُحفَظ على
 // الجهاز بعد أول تحميل، كي تُعرض التذكرة ورمزها حتى بلا إنترنت في المحطة
 const CDN_LIBS = [
@@ -87,8 +87,11 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin !== self.location.origin) return;
 
+  // صفحة التطبيق نفسها: نطلبها دائماً طازجة من الخادم (دون ذاكرة المتصفح المؤقتة)
+  // كي يظهر أي تحديث جديد فور فتح التطبيق
+  const isPage = event.request.mode === 'navigate';
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, isPage ? { cache: 'no-store' } : undefined)
       .then((response) => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});

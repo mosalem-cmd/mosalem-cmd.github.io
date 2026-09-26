@@ -3023,6 +3023,7 @@ body[data-cat-accent="maintenance"] .field-input:focus{ border-color:var(--cat-m
 
   <footer class="app-footer">
     <div class="rights" data-t="footer_rights">جميع الحقوق محفوظة، تيسير 2026</div>
+    <div id="app-version" style="font-size:10px;color:var(--text-muted);opacity:.6;margin:-4px 0 8px;direction:ltr;">v 26.09.4</div>
     <a class="wa-pill" href="https://wa.me/22238449637" target="_blank" rel="noopener">
       💬 <span data-t="footer_help">للمساعدة، تواصل معنا: +222 38449637</span>
     </a>
@@ -6446,7 +6447,7 @@ let pendingPinUnlock = null;
 function hasPinSet(){
   return !!(state.session && state.session.hasPin);
 }
-function openPinModalIfNeeded(onUnlock){
+function openPinModalIfNeeded(onUnlock, noAutoFocus){
   if(!hasPinSet() || pinUnlockedThisSession){ onUnlock(); return; }
   pendingPinUnlock = onUnlock;
   const input = document.getElementById('pin-modal-input');
@@ -6456,6 +6457,9 @@ function openPinModalIfNeeded(onUnlock){
   setTimeout(()=>{
     const sp = document.getElementById('splash-screen');
     if(sp && getComputedStyle(sp).display !== 'none') return;
+    // عند العودة للتطبيق (وليس بضغطة من المستخدم) لا نفتح لوحة المفاتيح تلقائياً،
+    // يظهر طلب الرمز فقط ويضغط المستخدم على الخانة عندما يريد
+    if(noAutoFocus) return;
     input.focus();
   }, 200);
 }
@@ -6498,7 +6502,7 @@ document.addEventListener('visibilitychange', ()=>{
     const sp = document.getElementById('splash-screen');
     if(sp && getComputedStyle(sp).display !== 'none') return;
     if(state.view === 'bookings'){
-      openPinModalIfNeeded(renderBookingsScreen);
+      openPinModalIfNeeded(renderBookingsScreen, true);
     } else if(state.view === 'admin-dashboard' && !adminAuthState.currentAdmin){
       navigateTo('admin-gate');
     } else {
