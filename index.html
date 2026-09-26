@@ -6452,7 +6452,12 @@ function openPinModalIfNeeded(onUnlock){
   const input = document.getElementById('pin-modal-input');
   input.value = '';
   document.getElementById('pin-modal').classList.add('open');
-  setTimeout(()=> input.focus(), 200);
+  // لا نفتح لوحة المفاتيح تلقائياً أثناء شاشة البداية (كانت تظهر فوقها عند فتح التطبيق)
+  setTimeout(()=>{
+    const sp = document.getElementById('splash-screen');
+    if(sp && getComputedStyle(sp).display !== 'none') return;
+    input.focus();
+  }, 200);
 }
 async function submitPinModal(){
   const val = document.getElementById('pin-modal-input').value.trim();
@@ -6489,6 +6494,9 @@ document.addEventListener('visibilitychange', ()=>{
     pinUnlockedThisSession = false;
     adminAuthState.currentAdmin = null;
   } else if(document.visibilityState === 'visible'){
+    // أثناء شاشة البداية لم يكتمل الإقلاع بعد — لا نفتح شيئاً (كان يفتح نافذة الرمز ولوحة المفاتيح فوق الشاشة)
+    const sp = document.getElementById('splash-screen');
+    if(sp && getComputedStyle(sp).display !== 'none') return;
     if(state.view === 'bookings'){
       openPinModalIfNeeded(renderBookingsScreen);
     } else if(state.view === 'admin-dashboard' && !adminAuthState.currentAdmin){
@@ -14191,7 +14199,9 @@ async function bootAfterLanguage(){
 
     const savedView = safeGet(STORAGE_KEYS.view);
     let initialView = 'auth';
-    if(state.session && savedView && REFRESH_SAFE_VIEWS.includes(savedView)){
+    // "حجوزاتي" محمية برمز، فعند فتح التطبيق نبدأ من الرئيسية بدلها حتى لا
+    // تظهر نافذة الرمز ولوحة المفاتيح فور الفتح
+    if(state.session && savedView && savedView !== 'bookings' && REFRESH_SAFE_VIEWS.includes(savedView)){
       initialView = savedView;
     } else if(state.session){
       initialView = 'home';
@@ -14219,7 +14229,25 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const savedThemeMode = safeGet(STORAGE_KEYS.themeMode) || safeGet(STORAGE_KEYS.theme);
   if(savedThemeMode) state.themeMode = savedThemeMode;
 
-  runSplashAnimation(()=>{
+  // إصلاح: على آيفون قد يُعيد النظام عند فتح التطبيق "التركيز" على خانة إدخال
+  // كانت نشطة سابقاً، فيظهر شريط لوحة المفاتيح (✓ ˅ ˄) فوق شاشة البداية.
+  // نُزيل أي تركيز أثناء شاشة البداية وعند العودة للتطبيق.
+  const clearStrayFocus = ()=>{
+    try{
+      const a = document.activeElement;
+      if(a && a !== document.body && typeof a.blur === 'function') a.blur();
+    }catch(e){}
+  };
+  clearStrayFocus();
+  window.addEventListener('pageshow', clearStrayFocus);
+
+  // حماية: شاشة البداية لا تبقى عالقة أبداً — إن لم تكتمل الحركة خلال 7 ثوانٍ
+  // (توقّف مؤقتات النظام مثلاً) نُكمل الإقلاع مباشرة، مرة واحدة فقط
+  let splashFinished = false;
+  const finishSplash = ()=>{
+    if(splashFinished) return;
+    splashFinished = true;
+    clearStrayFocus();
     if(savedLang){
       state.lang = savedLang;
       bootAfterLanguage();
@@ -14229,7 +14257,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }
     // تأخير بسيط كي لا تظهر تعليمات تثبيت آيفون فوق انتقال شاشة البداية مباشرة
     setTimeout(maybeShowIosInstallHint, 3000);
-  });
+  };
+  runSplashAnimation(finishSplash);
+  setTimeout(finishSplash, 7000);
 });
 
 // تسجيل Service Worker: شرط أساسي لدى المتصفح لتفعيل "تثبيت التطبيق" الحقيقي
