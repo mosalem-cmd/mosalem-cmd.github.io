@@ -6,7 +6,7 @@
 // كي لا يظل المستخدم عالقاً على نسخة قديمة من التطبيق بعد أي تحديث.
 // ============================================================
 
-const CACHE_NAME = 'taysir-shell-v3';
+const CACHE_NAME = 'taysir-shell-v13';
 // مكتبات خارجية ثابتة الإصدار (مولّد رموز QR، قارئ QR، Supabase): تُحفَظ على
 // الجهاز بعد أول تحميل، كي تُعرض التذكرة ورمزها حتى بلا إنترنت في المحطة
 const CDN_LIBS = [
@@ -14,7 +14,7 @@ const CDN_LIBS = [
   'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
-const APP_SHELL = ['/'];
+const APP_SHELL = ['./'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -43,8 +43,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'تيسير', {
       body: data.body || '',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: 'icon-512.png',
+      badge: 'icon-512.png',
       dir: 'rtl',
       lang: 'ar'
     })
@@ -59,7 +59,7 @@ self.addEventListener('notificationclick', (event) => {
       for(const client of clientsArr){
         if('focus' in client) return client.focus();
       }
-      if(self.clients.openWindow) return self.clients.openWindow('/');
+      if(self.clients.openWindow) return self.clients.openWindow('./');
     })
   );
 });
@@ -97,6 +97,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./')))
   );
 });
